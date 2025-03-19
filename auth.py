@@ -1,14 +1,15 @@
 from flask import Flask, request, jsonify
-import sqlite3
+import mysql.connector
 
 app = Flask(__name__)
-DATABASE = 'base_budget.db'
 
-def get_db_connection():
-    """Ouvre une connexion à la base de données SQLite."""
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+def connect_db():
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="Adeletdehlia21!",
+        database="base_budget"
+    )
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -24,14 +25,14 @@ def login():
     if not email or not password:
         return jsonify({"error": "Email et mot de passe requis."}), 400
 
-    conn = get_db_connection()
+    conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE email = ? AND password = ?", (email, password))
+    cursor.execute("SELECT id FROM client WHERE email = %s AND mot_de_passe = %s", (email, password))
     user = cursor.fetchone()
     conn.close()
 
     if user:
-        return jsonify({"message": "Connexion réussie."}), 200
+        return jsonify({"message": "Connexion réussie.", "client_id": user[0]}), 200
     else:
         return jsonify({"error": "Email ou mot de passe incorrect."}), 401
 
