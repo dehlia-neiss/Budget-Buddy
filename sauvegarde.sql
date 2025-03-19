@@ -16,6 +16,33 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `banquier`
+--
+
+DROP TABLE IF EXISTS `banquier`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `banquier` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nom` varchar(255) DEFAULT NULL,
+  `prenom` varchar(255) DEFAULT NULL,
+  `mail` text,
+  `mot_de_passe` text,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `banquier`
+--
+
+LOCK TABLES `banquier` WRITE;
+/*!40000 ALTER TABLE `banquier` DISABLE KEYS */;
+INSERT INTO `banquier` VALUES (1,'Pires','Alice','alice.pires@example.com','securepass001'),(2,'Leclerc','David','david.leclerc@example.com','securepass002'),(3,'Guillaume','Lucie','lucie.guillaume@example.com','securepass003');
+/*!40000 ALTER TABLE `banquier` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `categories`
 --
 
@@ -26,7 +53,7 @@ CREATE TABLE `categories` (
   `id` int NOT NULL AUTO_INCREMENT,
   `nom` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -35,7 +62,7 @@ CREATE TABLE `categories` (
 
 LOCK TABLES `categories` WRITE;
 /*!40000 ALTER TABLE `categories` DISABLE KEYS */;
-INSERT INTO `categories` VALUES (1,'Loisir'),(2,'Repas'),(3,'Transport'),(4,'Logement'),(5,'Santé'),(6,'Divers'),(7,'Épargne'),(8,'Investissement');
+INSERT INTO `categories` VALUES (1,'Loisir'),(2,'Repas'),(3,'Transport'),(4,'Logement'),(5,'Santé'),(6,'Divers'),(7,'Épargne'),(8,'Investissement'),(9,'revenu'),(10,'Dépot'),(11,'Transfert'),(12,'salaire');
 /*!40000 ALTER TABLE `categories` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -86,7 +113,7 @@ CREATE TABLE `transaction` (
   KEY `categorie_id` (`categorie_id`),
   CONSTRAINT `transaction_ibfk_1` FOREIGN KEY (`client_id`) REFERENCES `client` (`id`),
   CONSTRAINT `transaction_ibfk_2` FOREIGN KEY (`categorie_id`) REFERENCES `categories` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -95,7 +122,7 @@ CREATE TABLE `transaction` (
 
 LOCK TABLES `transaction` WRITE;
 /*!40000 ALTER TABLE `transaction` DISABLE KEYS */;
-INSERT INTO `transaction` VALUES (1,1,'Dépôt',1500.00,'Salaire mensuel','2025-03-01',7),(2,2,'Retrait',50.00,'Dîner au restaurant','2025-03-05',2),(3,3,'Transfert',200.00,'Transfert vers compte épargne','2025-03-10',8),(4,4,'Retrait',100.00,'Achats vêtements','2025-03-12',6),(5,5,'Dépôt',300.00,'Vente d\'un objet','2025-03-15',5);
+INSERT INTO `transaction` VALUES (1,1,'Dépôt',1500.00,'Salaire mensuel','2025-03-01',7),(2,2,'Retrait',50.00,'Dîner au restaurant','2025-03-05',2),(3,3,'Transfert',200.00,'Transfert vers compte épargne','2025-03-10',8),(4,4,'Retrait',100.00,'Achats vêtements','2025-03-12',6),(5,5,'Dépôt',300.00,'Vente d\'un objet','2025-03-15',5),(6,NULL,'Dépôt',100.00,NULL,NULL,10),(7,NULL,'Dépôt',1000.00,NULL,NULL,10),(8,NULL,'Dépôt',1000.00,NULL,NULL,10),(9,NULL,'Dépôt',1000.00,NULL,NULL,10),(10,NULL,'Transfert',1000.00,NULL,NULL,1),(11,1,'Dépôt',1000.00,NULL,NULL,1),(12,1,'Dépôt',1000.00,NULL,NULL,12),(13,1,'Retrait',200.00,NULL,'2025-03-19',1);
 /*!40000 ALTER TABLE `transaction` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -108,4 +135,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-03-17 14:18:50
+-- Dump completed on 2025-03-19 15:06:08
