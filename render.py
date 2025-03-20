@@ -1,50 +1,35 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
-import mysql.connector
-from tkinter import PhotoImage
+from tkinter import ttk, messagebox, PhotoImage
 from datetime import datetime
+from auth import login as auth_login   # Import login function from auth.py
+from connexion import connect_db      # Import shared database connection
 
 # Global variables
 client_id = None
 tree_transactions = None
 
-# Connect to the database
-def connect_db():
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="Adeletdehlia21!",
-        database="base_budget"
-    )
-
-# Fetch client details by email and password
-def login(email, password):
+def login_handler():
     global client_id
-    conn = connect_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM client WHERE email = %s AND mot_de_passe = %s", (email, password))
-    result = cursor.fetchone()
-    conn.close()
-    if result:
-        client_id = result[0]
-        messagebox.showinfo("Connexion réussie", "Vous êtes connecté !")
+    email = entry_email.get()
+    password = entry_password.get()
+    user_id = auth_login(email, password)
+    if user_id:
+        client_id = user_id
+        messagebox.showinfo("Login Successful", "You are now logged in!")
         show_buttons_after_login()
-        return True
+        login_frame.pack_forget()
+        transaction_frame.pack(fill="both", expand=True)
     else:
-        messagebox.showerror("Erreur", "Email ou mot de passe incorrect.")
-        return False
+        messagebox.showerror("Error", "Incorrect email or password.")
 
-# Show buttons after login
 def show_buttons_after_login():
     transactions_btn.pack(fill="x", pady=5, padx=10)
-    historique_btn.pack(fill="x", pady=5, padx=10)
+    history_btn.pack(fill="x", pady=5, padx=10)
 
-# Show transactions history
 def fetch_transactions():
     global tree_transactions
     if client_id is None:
-        messagebox.showerror("Erreur", "Vous devez être connecté pour voir les transactions.")
+        messagebox.showerror("Error", "You must be logged in to view transactions.")
         return
 
     conn = connect_db()
@@ -59,43 +44,44 @@ def fetch_transactions():
     for row in rows:
         tree_transactions.insert("", "end", values=row)
 
-def add_transaction(montant, type_transaction, categorie):
+def add_transaction(amount, transaction_type, category):
     if client_id is None:
-        messagebox.showerror("Erreur", "Vous devez être connecté pour ajouter une transaction.")
+        messagebox.showerror("Error", "You must be logged in to add a transaction.")
         return
 
-    if not montant or not categorie or not type_transaction:
-        messagebox.showerror("Erreur", "Tous les champs doivent être remplis.")
+    if not amount or not transaction_type or not category:
+        messagebox.showerror("Error", "All fields must be filled.")
         return
 
     try:
-        montant = float(montant)
-        date_transaction = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        amount = float(amount)
+        transaction_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         conn = connect_db()
         cursor = conn.cursor()
 
-        # Vérifier si la catégorie existe, sinon l'ajouter
-        cursor.execute("SELECT id FROM categories WHERE nom = %s", (categorie,))
+        # Check if the category exists; if not, add it
+        cursor.execute("SELECT id FROM categories WHERE nom = %s", (category,))
         result = cursor.fetchone()
-
         if result:
-            categorie_id = result[0]
+            category_id = result[0]
         else:
-            cursor.execute("INSERT INTO categories (nom) VALUES (%s)", (categorie,))
+            cursor.execute("INSERT INTO categories (nom) VALUES (%s)", (category,))
             conn.commit()
-            categorie_id = cursor.lastrowid
+            category_id = cursor.lastrowid
 
-        # Insérer la transaction avec la date actuelle
-        cursor.execute("INSERT INTO transaction (montant, type, client_id, categorie_id, date) VALUES (%s, %s, %s, %s, %s)",
-                       (montant, type_transaction, client_id, categorie_id, date_transaction))
+        # Insert the transaction with the current date
+        cursor.execute(
+            "INSERT INTO transaction (montant, type, client_id, categorie_id, date) VALUES (%s, %s, %s, %s, %s)",
+            (amount, transaction_type, client_id, category_id, transaction_date)
+        )
         conn.commit()
         conn.close()
-
         fetch_transactions()
-        messagebox.showinfo("Succès", "Transaction ajoutée avec succès !")
-
+        messagebox.showinfo("Success", "Transaction added successfully!")
     except ValueError:
-        messagebox.showerror("Erreur", "Le montant doit être un nombre valide.")
+        messagebox.showerror("Error", "The amount must be a valid number.")
+
+# --- UI Setup ---
 
 root = tk.Tk()
 root.title("Budget Buddy")
@@ -115,51 +101,43 @@ logo.pack(pady=20)
 login_frame = tk.Frame(main_frame)
 login_frame.pack(fill="both", expand=True)
 
-tk.Label(login_frame, text="Email", font=("Arial", 12), bg="white").pack(pady=5)
+tk.Label(login_frame, text="Email", font=("Arial", 12)).pack(pady=5)
 entry_email = tk.Entry(login_frame)
 entry_email.pack(pady=5)
 
-tk.Label(login_frame, text="Mot de passe", font=("Arial", 12), bg="white").pack(pady=5)
+tk.Label(login_frame, text="Password", font=("Arial", 12)).pack(pady=5)
 entry_password = tk.Entry(login_frame, show="*")
 entry_password.pack(pady=5)
 
-def handle_login():
-    email = entry_email.get()
-    password = entry_password.get()
-    if login(email, password):
-     login_frame.pack_forget()  
-    transaction_frame.pack(fill="both", expand=True) 
-
-
-login_btn = tk.Button(login_frame, text="Se connecter", bg="#27AE60", fg="white", command=handle_login)
+login_btn = tk.Button(login_frame, text="Login", bg="#27AE60", fg="white", command=login_handler)
 login_btn.pack(pady=20)
 
-transactions_btn = tk.Button(sidebar, text="Transactions", bg="#34495E", fg="white", font=("Arial", 12), relief="flat", command=lambda: fetch_transactions())
-historique_btn = tk.Button(sidebar, text="Historique", bg="#34495E", fg="white", font=("Arial", 12), relief="flat", command=lambda: fetch_transactions())
+transactions_btn = tk.Button(sidebar, text="Transactions", bg="#34495E", fg="white", font=("Arial", 12), relief="flat", command=fetch_transactions)
+history_btn = tk.Button(sidebar, text="History", bg="#34495E", fg="white", font=("Arial", 12), relief="flat", command=fetch_transactions)
 
-tree_transactions = ttk.Treeview(main_frame, columns=("ID", "Montant", "Type", "Date"))
+tree_transactions = ttk.Treeview(main_frame, columns=("ID", "Amount", "Type", "Date"))
 transaction_frame = tk.Frame(main_frame)
 transaction_frame.pack(fill="both", expand=True, pady=10)
 
-tk.Label(transaction_frame, text="Montant:", font=("Arial", 12)).grid(row=0, column=0, padx=10, pady=5)
-entry_montant = tk.Entry(transaction_frame)
-entry_montant.grid(row=0, column=1, padx=10, pady=5)
+tk.Label(transaction_frame, text="Amount:", font=("Arial", 12)).grid(row=0, column=0, padx=10, pady=5)
+entry_amount = tk.Entry(transaction_frame)
+entry_amount.grid(row=0, column=1, padx=10, pady=5)
 
 tk.Label(transaction_frame, text="Type:", font=("Arial", 12)).grid(row=1, column=0, padx=10, pady=5)
-type_var = tk.StringVar()
-type_dropdown = ttk.Combobox(transaction_frame, textvariable=type_var, values=["Dépôt", "Retrait"])
+transaction_type_var = tk.StringVar()
+type_dropdown = ttk.Combobox(transaction_frame, textvariable=transaction_type_var, values=["Deposit", "Withdrawal"])
 type_dropdown.grid(row=1, column=1, padx=10, pady=5)
 
-tk.Label(transaction_frame, text="Catégorie:", font=("Arial", 12)).grid(row=2, column=0, padx=10, pady=5)
-entry_categorie = tk.Entry(transaction_frame)
-entry_categorie.grid(row=2, column=1, padx=10, pady=5)
+tk.Label(transaction_frame, text="Category:", font=("Arial", 12)).grid(row=2, column=0, padx=10, pady=5)
+entry_category = tk.Entry(transaction_frame)
+entry_category.grid(row=2, column=1, padx=10, pady=5)
 
-add_btn = tk.Button(transaction_frame, text="Ajouter Transaction", bg="#27AE60", fg="white",
-                    command=lambda: add_transaction(entry_montant.get(), type_var.get(), entry_categorie.get()))
+add_btn = tk.Button(transaction_frame, text="Add Transaction", bg="#27AE60", fg="white",
+                    command=lambda: add_transaction(entry_amount.get(), transaction_type_var.get(), entry_category.get()))
 add_btn.grid(row=3, column=0, columnspan=2, pady=10)
 
 tree_transactions.heading("#1", text="ID")
-tree_transactions.heading("#2", text="Montant")
+tree_transactions.heading("#2", text="Amount")
 tree_transactions.heading("#3", text="Type")
 tree_transactions.heading("#4", text="Date")
 tree_transactions.pack(fill="both", expand=True)
