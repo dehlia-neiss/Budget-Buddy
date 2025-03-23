@@ -4,6 +4,9 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime
 from tkinter import ttk
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 class Application(tk.Tk):
     def __init__(self):
@@ -100,6 +103,20 @@ class Application(tk.Tk):
         else:
             messagebox.showerror("Erreur", "Identifiants incorrects ou utilisateur non trouvé")
 
+    def obtenir_clients_par_banquier(banquier_id):
+      db = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                password="Adeletdehlia21!",
+                database="base_budget"
+      )
+      cursor = db.cursor()
+      query = "SELECT * FROM client WHERE banquier_id = %s"
+      cursor.execute(query, (banquier_id,))
+      clients = cursor.fetchall()
+      cursor.close()
+      return clients
+
     def check_credentials(self, role, email, password):
         try:
             connection = mysql.connector.connect(
@@ -148,8 +165,29 @@ class Application(tk.Tk):
 
         logout_button = tk.Button(self.main_frame, text="Se déconnecter", font=("Arial", 14), command=self.logout)
         logout_button.pack(pady=10)
+ 
 
         self.bind("<Escape>", lambda event: self.open_dashboard(role, email))
+
+    def make_transaction(self, montant):
+    # Effectue la transaction en modifiant le solde
+     self.current_balance += montant
+
+    # Vérifie si le solde est négatif après la transaction
+     if self.current_balance < 0:
+        self.show_negative_balance_warning()
+
+    # Mets à jour l'affichage du solde après la transaction
+     self.update_balance_label()
+
+    def show_negative_balance_warning(self):
+    # Affiche un message d'alerte lorsque le solde est négatif
+     messagebox.showwarning("Solde négatif", "Alerte : Votre solde est maintenant négatif. Veuillez vérifier vos transactions.")
+
+    def update_balance_label(self):
+    # Mets à jour l'affichage du solde sur l'interface
+     balance_label = tk.Label(self.main_frame, text=f"Solde actuel : {self.current_balance} €", font=("Arial", 14), bg="#f0f0f0")
+     balance_label.pack(pady=5)
 
     def get_balance(self, role, email):
         if role != "Client":
@@ -325,8 +363,7 @@ class Application(tk.Tk):
                 connection.close()
 
     def add_transaction_to_history(self, transaction_type, montant, description):
-        # Cette fonction est optionnelle si l'insertion se fait déjà dans chaque opération
-        pass  # Ici, les transactions sont déjà insérées dans la base lors de chaque opération
+        pass 
 
     def show_transaction_history(self):
         self.clear_screen()
@@ -348,6 +385,10 @@ class Application(tk.Tk):
 
         back_button = tk.Button(self.main_frame, text="Retour", font=("Arial", 14), command=lambda: self.open_dashboard(self.current_user_role, self.current_user_email))
         back_button.pack(pady=10)
+
+        graph_button = tk.Button(self.main_frame, text="Afficher graphique des transactions", font=("Arial", 14), command=self.show_transaction_graph)
+        graph_button.pack(pady=10)
+
         self.bind("<Escape>", lambda event: self.open_dashboard(self.current_user_role, self.current_user_email))
 
     def get_transaction_history(self):
@@ -370,6 +411,63 @@ class Application(tk.Tk):
             if connection.is_connected():
                 cursor.close()
                 connection.close()
+    def show_transaction_graph(self):
+     self.clear_screen()
+
+    # Ajouter un titre pour la page
+     graph_label = tk.Label(self.main_frame, text="Graphique des transactions", font=("Arial", 18), bg="#f0f0f0")
+     graph_label.pack(pady=20)
+
+    # Récupérer les transactions depuis la base de données
+     try:
+        connection = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="Adeletdehlia21!",
+            database="base_budget"
+        )
+        cursor = connection.cursor()
+
+        # Récupérer l'id du client
+        cursor.execute("SELECT id FROM client WHERE email = %s", (self.current_user_email,))
+        result = cursor.fetchone()
+        if not result:
+            messagebox.showerror("Erreur", "Client non trouvé")
+            return
+        client_id = result[0]
+
+        # Récupérer les types de transactions et leur montant
+        cursor.execute("SELECT type, SUM(montant) FROM transaction WHERE client_id = %s GROUP BY type", (client_id,))
+        transactions = cursor.fetchall()
+
+        # Fermer la connexion
+        connection.commit()
+
+        # Préparer les données pour le graphique
+        transaction_types = []
+        transaction_amounts = []
+        for t in transactions:
+            transaction_types.append(t[0])
+            transaction_amounts.append(t[1])
+
+        # Créer le graphique
+        fig, ax = plt.subplots()
+        ax.pie(transaction_amounts, labels=transaction_types, autopct='%1.1f%%', startangle=90)
+        ax.axis('equal')  # Pour un graphique circulaire parfait
+
+        # Ajouter le graphique à l'interface Tkinter
+        canvas = FigureCanvasTkAgg(fig, master=self.main_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(pady=20)
+
+     except Error as e:
+        messagebox.showerror("Erreur de connexion", f"Erreur de connexion à la base de données: {e}")
+
+     finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
 
     def logout(self):
         self.is_logged_in = False
