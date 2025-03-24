@@ -104,18 +104,18 @@ class Application(tk.Tk):
             messagebox.showerror("Erreur", "Identifiants incorrects ou utilisateur non trouvé")
 
     def obtenir_clients_par_banquier(banquier_id):
-      db = mysql.connector.connect(
-                host="localhost",
-                user="root",
-                password="Adeletdehlia21!",
-                database="base_budget"
-      )
-      cursor = db.cursor()
-      query = "SELECT * FROM client WHERE banquier_id = %s"
-      cursor.execute(query, (banquier_id,))
-      clients = cursor.fetchall()
-      cursor.close()
-      return clients
+        db = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="Adeletdehlia21!",
+            database="base_budget"
+        )
+        cursor = db.cursor()
+        query = "SELECT * FROM client WHERE banquier_id = %s"
+        cursor.execute(query, (banquier_id,))
+        clients = cursor.fetchall()
+        cursor.close()
+        return clients
 
     def check_credentials(self, role, email, password):
         try:
@@ -167,37 +167,35 @@ class Application(tk.Tk):
 
         logout_button = tk.Button(self.main_frame, text="Se déconnecter", font=("Arial", 14), command=self.logout)
         logout_button.pack(pady=10)
- 
 
         self.bind("<Escape>", lambda event: self.open_dashboard(role, email))
     
     def get_client_name(self, email):
-     conn = mysql.connector.connect(host="localhost", user="root", password="Adeletdehlia21!", database="base_budget")
-     cursor = conn.cursor()
-     cursor.execute("SELECT nom, prenom FROM client WHERE email = %s", (email,))
-     result = cursor.fetchone()
-     conn.close()
+        conn = mysql.connector.connect(host="localhost", user="root", password="Adeletdehlia21!", database="base_budget")
+        cursor = conn.cursor()
+        cursor.execute("SELECT nom, prenom FROM client WHERE email = %s", (email,))
+        result = cursor.fetchone()
+        conn.close()
 
-     if result:
-        return f"{result[0]} {result[1]}" 
-     return "Utilisateur inconnu" 
-
+        if result:
+            return f"{result[0]} {result[1]}" 
+        return "Utilisateur inconnu" 
 
     def make_transaction(self, montant):
-     self.current_balance += montant
+        self.current_balance += montant
 
-     if self.current_balance < 0:
-        self.show_negative_balance_warning()
+        if self.current_balance < 0:
+            self.show_negative_balance_warning()
 
-     self.update_balance_label()
+        self.update_balance_label()
 
     def show_negative_balance_warning(self):
-    # Affiche un message d'alerte lorsque le solde est négatif
-     messagebox.showwarning("Solde négatif", "Alerte : Votre solde est maintenant négatif. Veuillez vérifier vos transactions.")
+        # Affiche un message d'alerte lorsque le solde est négatif
+        messagebox.showwarning("Solde négatif", "Alerte : Votre solde est maintenant négatif. Veuillez vérifier vos transactions.")
 
     def update_balance_label(self):
-     balance_label = tk.Label(self.main_frame, text=f"Solde actuel : {self.current_balance} €", font=("Arial", 14), bg="#f0f0f0")
-     balance_label.pack(pady=5)
+        balance_label = tk.Label(self.main_frame, text=f"Solde actuel : {self.current_balance} €", font=("Arial", 14), bg="#f0f0f0")
+        balance_label.pack(pady=5)
 
     def get_balance(self, role, email):
         if role != "Client":
@@ -416,61 +414,173 @@ class Application(tk.Tk):
             if connection.is_connected():
                 cursor.close()
                 connection.close()
+                
     def show_transaction_graph(self):
-     self.clear_screen()
+        self.clear_screen()
 
-    # Ajouter un titre pour la page
-     graph_label = tk.Label(self.main_frame, text="Graphique des transactions", font=("Arial", 18), bg="#f0f0f0")
-     graph_label.pack(pady=20)
+        # Ajouter un titre pour la page
+        graph_label = tk.Label(self.main_frame, text="Graphique des transactions", font=("Arial", 18), bg="#f0f0f0")
+        graph_label.pack(pady=20)
 
-     try:
-        connection = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="Adeletdehlia21!",
-            database="base_budget"
-        )
-        cursor = connection.cursor()
+        try:
+            connection = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                password="Adeletdehlia21!",
+                database="base_budget"
+            )
+            cursor = connection.cursor()
 
-        # Récupérer l'id du client
-        cursor.execute("SELECT id FROM client WHERE email = %s", (self.current_user_email,))
-        result = cursor.fetchone()
-        if not result:
-            messagebox.showerror("Erreur", "Client non trouvé")
+            # Récupérer l'id du client
+            cursor.execute("SELECT id FROM client WHERE email = %s", (self.current_user_email,))
+            result = cursor.fetchone()
+            if not result:
+                messagebox.showerror("Erreur", "Client non trouvé")
+                return
+            client_id = result[0]
+
+            # Récupérer les types de transactions et leur montant
+            cursor.execute("SELECT type, SUM(montant) FROM transaction WHERE client_id = %s GROUP BY type", (client_id,))
+            transactions = cursor.fetchall()
+
+            # Fermer la connexion
+            connection.commit()
+
+            # Préparer les données pour le graphique
+            transaction_types = []
+            transaction_amounts = []
+            for t in transactions:
+                transaction_types.append(t[0])
+                transaction_amounts.append(t[1])
+
+            # Créer le graphique
+            fig, ax = plt.subplots()
+            ax.pie(transaction_amounts, labels=transaction_types, autopct='%1.1f%%', startangle=90)
+            ax.axis('equal')  # Pour un graphique circulaire parfait
+
+            canvas = FigureCanvasTkAgg(fig, master=self.main_frame)
+            canvas.draw()
+            canvas.get_tk_widget().pack(pady=20)
+
+        except Error as e:
+            messagebox.showerror("Erreur de connexion", f"Erreur de connexion à la base de données: {e}")
+
+        finally:
+            if connection.is_connected():
+                cursor.close()
+                connection.close()
+
+    # Méthode get_transactions intégrée sans modification d'autre
+    def get_transactions(self, client_id=None, transaction_type=None, category_id=None, 
+                         date_start=None, date_end=None, sort_by="date", sort_order="DESC"):
+        """Récupère les transactions selon les critères spécifiés"""
+        try:
+            connection = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                password="Adeletdehlia21!",
+                database="base_budget"
+            )
+            cursor = connection.cursor(dictionary=True)
+            
+            # Construire la requête SQL
+            query = """
+            SELECT t.*, c.nom as categorie_nom
+            FROM transaction t
+            LEFT JOIN categories c ON t.categorie_id = c.id
+            WHERE 1=1
+            """
+            params = []
+            
+            # Ajouter les filtres
+            if client_id:
+                query += " AND t.client_id = %s"
+                params.append(client_id)
+            
+            if transaction_type and transaction_type != "Tous":
+                query += " AND t.type = %s"
+                params.append(transaction_type)
+            
+            if category_id and category_id != 0:
+                query += " AND t.categorie_id = %s"
+                params.append(category_id)
+            
+            if date_start:
+                query += " AND t.date >= %s"
+                params.append(date_start)
+            
+            if date_end:
+                query += " AND t.date <= %s"
+                params.append(date_end)
+            
+            # Ajouter le tri
+            query += f" ORDER BY t.{sort_by} {sort_order}"
+            
+            cursor.execute(query, tuple(params))
+            transactions = cursor.fetchall()
+            return transactions
+        except Error as e:
+            messagebox.showerror("Erreur", f"Erreur lors de la récupération des transactions : {e}")
+            return []
+        finally:
+            if connection.is_connected():
+                cursor.close()
+                connection.close()
+
+    # Exemple d'utilisation de get_transactions
+    def show_filtered_transactions(self):
+        """Affiche les transactions filtrées (exemple: uniquement les dépôts)"""
+        # Récupérer l'id du client à partir de l'email
+        try:
+            connection = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                password="Adeletdehlia21!",
+                database="base_budget"
+            )
+            cursor = connection.cursor()
+            cursor.execute("SELECT id FROM client WHERE email = %s", (self.current_user_email,))
+            result = cursor.fetchone()
+            if not result:
+                messagebox.showerror("Erreur", "Client non trouvé")
+                return
+            client_id = result[0]
+        except Error as e:
+            messagebox.showerror("Erreur", f"Erreur lors de la récupération de l'identifiant du client: {e}")
             return
-        client_id = result[0]
+        finally:
+            if connection.is_connected():
+                cursor.close()
+                connection.close()
 
-        # Récupérer les types de transactions et leur montant
-        cursor.execute("SELECT type, SUM(montant) FROM transaction WHERE client_id = %s GROUP BY type", (client_id,))
-        transactions = cursor.fetchall()
+        # Appel de la méthode get_transactions pour récupérer uniquement les dépôts
+        transactions = self.get_transactions(client_id=client_id, transaction_type="Dépôt")
 
-        # Fermer la connexion
-        connection.commit()
+        # Création d'une nouvelle fenêtre pour afficher les transactions
+        filter_window = tk.Toplevel(self)
+        filter_window.title("Transactions Filtrées")
+        filter_window.geometry("600x400")
+        
+        tree = ttk.Treeview(filter_window, columns=("id", "type", "montant", "date", "categorie"), show="headings")
+        tree.heading("id", text="ID")
+        tree.heading("type", text="Type")
+        tree.heading("montant", text="Montant (€)")
+        tree.heading("date", text="Date")
+        tree.heading("categorie", text="Catégorie")
+        tree.pack(fill="both", expand=True)
 
-        # Préparer les données pour le graphique
-        transaction_types = []
-        transaction_amounts = []
-        for t in transactions:
-            transaction_types.append(t[0])
-            transaction_amounts.append(t[1])
+        # Insertion des transactions dans le Treeview
+        for transaction in transactions:
+            tree.insert("", "end", values=(
+                transaction.get("id"),
+                transaction.get("type"),
+                transaction.get("montant"),
+                transaction.get("date"),
+                transaction.get("categorie_nom")
+            ))
 
-        # Créer le graphique
-        fig, ax = plt.subplots()
-        ax.pie(transaction_amounts, labels=transaction_types, autopct='%1.1f%%', startangle=90)
-        ax.axis('equal')  # Pour un graphique circulaire parfait
-
-        canvas = FigureCanvasTkAgg(fig, master=self.main_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(pady=20)
-
-     except Error as e:
-        messagebox.showerror("Erreur de connexion", f"Erreur de connexion à la base de données: {e}")
-
-     finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
-
+        close_button = tk.Button(filter_window, text="Fermer", command=filter_window.destroy)
+        close_button.pack(pady=10)
 
     def logout(self):
         self.is_logged_in = False
