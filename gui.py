@@ -32,7 +32,7 @@ class Application(tk.Tk,Connexion):
             'host': "localhost",
             'port': 3306,
             'user': "root",
-            'password': input("mdp:"),
+            'password': "",
             'database': "base_budget"
         }
             return mysql.connector.connect(**self.db_config)
@@ -173,15 +173,35 @@ class Application(tk.Tk,Connexion):
         login_button.pack(pady=20, ipadx=20)
 
     def authenticate_client(self):
+        
         email = self.email_entry.get()
         password = self.password_entry.get()
+        self.current_user_role="Client"
         self.current_user_email = email
-        self.current_user_role = "Client"
+        try:
+            cnx = self.get_connection()
+            cursor = cnx.cursor()
+            query = "SELECT mot_de_passe FROM client WHERE email = %s"
+            cursor.execute(query, (email,))
+            result = cursor.fetchone()
 
-        if self.check_credentials("client", email, password):
-            self.open_dashboard("Client", email)
-        else:
-            messagebox.showerror("Erreur", "Identifiants incorrects ou utilisateur non trouvé")
+            if result:
+                hashed_password = result[0]
+                if self.verify_password(hashed_password, password):
+                    print("Login successful!")
+                    
+                    self.open_dashboard("Client", email)
+                else:
+                    print("Wrong password.")
+            else:
+                print("User not found.")
+
+        except mysql.connector.Error as e:
+            print(f"Database error: {e}")
+
+        finally:
+            cursor.close()
+            cnx.close()
 
     def authenticate_banquier(self):
         email = self.email_entry.get()
@@ -198,7 +218,7 @@ class Application(tk.Tk,Connexion):
       db = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Adeletdehlia21!",
+                password="",
                 database="base_budget"
       )
       cursor = db.cursor()
@@ -213,7 +233,7 @@ class Application(tk.Tk,Connexion):
             connection = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Adeletdehlia21!",
+                password="",
                 database="base_budget"
             )
             cursor = connection.cursor()
@@ -263,7 +283,7 @@ class Application(tk.Tk,Connexion):
         self.bind("<Escape>", lambda event: self.open_dashboard(role, email))
     
     def get_client_name(self, email):
-     conn = mysql.connector.connect(host="localhost", user="root", password="Adeletdehlia21!", database="base_budget")
+     conn = mysql.connector.connect(host="localhost", user="root", password="", database="base_budget")
      cursor = conn.cursor()
      cursor.execute("SELECT nom, prenom FROM client WHERE email = %s", (email,))
      result = cursor.fetchone()
@@ -298,7 +318,7 @@ class Application(tk.Tk,Connexion):
             connection = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Adeletdehlia21!",
+                password="",
                 database="base_budget"
             )
             cursor = connection.cursor()
@@ -385,7 +405,7 @@ class Application(tk.Tk,Connexion):
             connection = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Adeletdehlia21!",
+                password="",
                 database="base_budget"
             )
             cursor = connection.cursor()
@@ -411,7 +431,7 @@ class Application(tk.Tk,Connexion):
             connection = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Adeletdehlia21!",
+                password="",
                 database="base_budget"
             )
             cursor = connection.cursor()
@@ -436,7 +456,7 @@ class Application(tk.Tk,Connexion):
             connection = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Adeletdehlia21!",
+                password="",
                 database="base_budget"
             )
             cursor = connection.cursor()
@@ -492,7 +512,7 @@ class Application(tk.Tk,Connexion):
             connection = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="Adeletdehlia21!",
+                password="",
                 database="base_budget"
             )
             cursor = connection.cursor()
@@ -518,7 +538,7 @@ class Application(tk.Tk,Connexion):
         connection = mysql.connector.connect(
             host="localhost",
             user="root",
-            password="Adeletdehlia21!",
+            password="",
             database="base_budget"
         )
         cursor = connection.cursor()
