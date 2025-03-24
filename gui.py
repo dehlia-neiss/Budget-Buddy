@@ -144,10 +144,12 @@ class Application(tk.Tk):
     def open_dashboard(self, role, email):
         self.clear_screen()
 
+        full_name = self.get_client_name(email)
+
         dashboard_label = tk.Label(self.main_frame, text=f"Tableau de bord {role}", font=("Arial", 18), bg="#f0f0f0")
         dashboard_label.pack(pady=20)
 
-        welcome_label = tk.Label(self.main_frame, text=f"Bienvenue {role}!", font=("Arial", 14), bg="#f0f0f0")
+        welcome_label = tk.Label(self.main_frame, text=f"Bienvenue {full_name}!", font=("Arial", 14), bg="#f0f0f0")
         welcome_label.pack(pady=20)
 
         balance_label = tk.Label(self.main_frame, text="Solde : ", font=("Arial", 14), bg="#f0f0f0")
@@ -168,16 +170,25 @@ class Application(tk.Tk):
  
 
         self.bind("<Escape>", lambda event: self.open_dashboard(role, email))
+    
+    def get_client_name(self, email):
+     conn = mysql.connector.connect(host="localhost", user="root", password="Adeletdehlia21!", database="base_budget")
+     cursor = conn.cursor()
+     cursor.execute("SELECT nom, prenom FROM client WHERE email = %s", (email,))
+     result = cursor.fetchone()
+     conn.close()
+
+     if result:
+        return f"{result[0]} {result[1]}" 
+     return "Utilisateur inconnu" 
+
 
     def make_transaction(self, montant):
-    # Effectue la transaction en modifiant le solde
      self.current_balance += montant
 
-    # Vérifie si le solde est négatif après la transaction
      if self.current_balance < 0:
         self.show_negative_balance_warning()
 
-    # Mets à jour l'affichage du solde après la transaction
      self.update_balance_label()
 
     def show_negative_balance_warning(self):
@@ -185,13 +196,11 @@ class Application(tk.Tk):
      messagebox.showwarning("Solde négatif", "Alerte : Votre solde est maintenant négatif. Veuillez vérifier vos transactions.")
 
     def update_balance_label(self):
-    # Mets à jour l'affichage du solde sur l'interface
      balance_label = tk.Label(self.main_frame, text=f"Solde actuel : {self.current_balance} €", font=("Arial", 14), bg="#f0f0f0")
      balance_label.pack(pady=5)
 
     def get_balance(self, role, email):
         if role != "Client":
-            # Pour ce code, on ne calcule le solde que pour les clients.
             return 0
 
         try:
@@ -208,7 +217,6 @@ class Application(tk.Tk):
             if not result:
                 return 0
             client_id = result[0]
-            # Récupérer les transactions pour ce client
             cursor.execute("SELECT type, montant FROM transaction WHERE client_id = %s", (client_id,))
             transactions = cursor.fetchall()
             balance = 0.0
@@ -219,7 +227,6 @@ class Application(tk.Tk):
                 elif t_type == "Retrait":
                     balance -= amount
                 elif t_type == "Transfert":
-                    # Ici, on suppose que le transfert est une sortie de fonds
                     balance -= amount
             return balance
         except Error as e:
@@ -268,7 +275,6 @@ class Application(tk.Tk):
         elif transaction_type == "retrait":
             self.soustraire_solde(montant)
         elif transaction_type == "transfert":
-            # Pour cet exemple, on considère que la description contient l'ID du destinataire
             try:
                 client_id_dest = int(description)
             except ValueError:
@@ -350,7 +356,6 @@ class Application(tk.Tk):
                 messagebox.showerror("Erreur", "Client expéditeur non trouvé")
                 return
             client_id_source = result[0]
-            # On considère ici que le transfert est une sortie pour l'expéditeur
             query = "INSERT INTO transaction (client_id, type, montant, description, date, categorie_id) VALUES (%s, 'Transfert', %s, %s, NOW(), 11)"
             description = f"Transfert vers client {client_id_dest}"
             cursor.execute(query, (client_id_source, montant, description))
@@ -418,7 +423,6 @@ class Application(tk.Tk):
      graph_label = tk.Label(self.main_frame, text="Graphique des transactions", font=("Arial", 18), bg="#f0f0f0")
      graph_label.pack(pady=20)
 
-    # Récupérer les transactions depuis la base de données
      try:
         connection = mysql.connector.connect(
             host="localhost",
@@ -455,7 +459,6 @@ class Application(tk.Tk):
         ax.pie(transaction_amounts, labels=transaction_types, autopct='%1.1f%%', startangle=90)
         ax.axis('equal')  # Pour un graphique circulaire parfait
 
-        # Ajouter le graphique à l'interface Tkinter
         canvas = FigureCanvasTkAgg(fig, master=self.main_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(pady=20)
