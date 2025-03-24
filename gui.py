@@ -374,6 +374,14 @@ class Application(tk.Tk):
         history_label = tk.Label(self.main_frame, text="Historique des Transactions", font=("Arial", 18), bg="#f0f0f0")
         history_label.pack(pady=20)
 
+        # Boutons de filtrage
+        filter_frame = tk.Frame(self.main_frame, bg="#f0f0f0")
+        filter_frame.pack(fill="x", padx=10, pady=10)
+
+        # Bouton d'application du filtre
+        filter_button = tk.Button(filter_frame, text="Filtrer", command=self.apply_filters)
+        filter_button.grid(row=0, column=4, padx=5, pady=5)
+
         tree = ttk.Treeview(self.main_frame, columns=("id", "type", "montant", "date", "description"), show="headings")
         tree.heading("id", text="ID")
         tree.heading("type", text="Type")
@@ -393,6 +401,7 @@ class Application(tk.Tk):
         graph_button.pack(pady=10)
 
         self.bind("<Escape>", lambda event: self.open_dashboard(self.current_user_role, self.current_user_email))
+
 
     def get_transaction_history(self):
         try:
